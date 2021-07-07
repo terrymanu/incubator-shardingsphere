@@ -93,12 +93,12 @@ public final class CommandExecutorTask implements Runnable {
     }
     
     private boolean executeCommand(final ChannelHandlerContext context, final PacketPayload payload, final BackendConnection backendConnection) throws SQLException {
-        long before = System.nanoTime();
         CommandExecuteEngine commandExecuteEngine = databaseProtocolFrontendEngine.getCommandExecuteEngine();
         CommandPacketType type = commandExecuteEngine.getCommandPacketType(payload);
         System.out.println(type);
         System.out.println();
         CommandPacket commandPacket = commandExecuteEngine.getCommandPacket(payload, type, backendConnection);
+        long before = System.nanoTime();
         CommandExecutor commandExecutor = commandExecuteEngine.getCommandExecutor(type, commandPacket, backendConnection);
         long time = System.nanoTime() - before;
         System.out.println("prepare: " + new DecimalFormat("###,###,###,###,###").format(time));
