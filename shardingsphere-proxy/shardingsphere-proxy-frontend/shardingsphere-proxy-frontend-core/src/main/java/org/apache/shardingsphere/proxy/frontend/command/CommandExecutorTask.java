@@ -35,7 +35,6 @@ import org.apache.shardingsphere.proxy.frontend.spi.DatabaseProtocolFrontendEngi
 import org.apache.shardingsphere.readwritesplitting.route.impl.PrimaryVisitedManager;
 
 import java.sql.SQLException;
-import java.text.DecimalFormat;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Optional;
@@ -63,7 +62,6 @@ public final class CommandExecutorTask implements Runnable {
      */
     @Override
     public void run() {
-        long before = System.nanoTime();
         boolean isNeedFlush = false;
         try (PacketPayload payload = databaseProtocolFrontendEngine.getCodecEngine().createPacketPayload((ByteBuf) message)) {
             ConnectionStatus connectionStatus = backendConnection.getConnectionStatus();
@@ -86,45 +84,27 @@ public final class CommandExecutorTask implements Runnable {
                 exceptions.addAll(backendConnection.closeConnections(false));
             }
             processClosedExceptions(exceptions);
-            long time = System.nanoTime() - before;
-            System.out.println("total: " + new DecimalFormat("###,###,###,###,###").format(time));
-            System.out.println();
         }
     }
     
     private boolean executeCommand(final ChannelHandlerContext context, final PacketPayload payload, final BackendConnection backendConnection) throws SQLException {
         CommandExecuteEngine commandExecuteEngine = databaseProtocolFrontendEngine.getCommandExecuteEngine();
         CommandPacketType type = commandExecuteEngine.getCommandPacketType(payload);
-        System.out.println(type);
-        System.out.println();
         CommandPacket commandPacket = commandExecuteEngine.getCommandPacket(payload, type, backendConnection);
-        long before = System.nanoTime();
         CommandExecutor commandExecutor = commandExecuteEngine.getCommandExecutor(type, commandPacket, backendConnection);
-        long time = System.nanoTime() - before;
-        System.out.println("prepare: " + new DecimalFormat("###,###,###,###,###").format(time));
-        before = System.nanoTime();
         try {
             Collection<DatabasePacket<?>> responsePackets = commandExecutor.execute();
-            time = System.nanoTime() - before;
-            System.out.println("execute: " + new DecimalFormat("###,###,###,###,###").format(time));
             if (responsePackets.isEmpty()) {
                 return false;
             }
-            before = System.nanoTime();
             responsePackets.forEach(context::write);
             if (commandExecutor instanceof QueryCommandExecutor) {
-                boolean result = commandExecuteEngine.writeQueryData(context, backendConnection, (QueryCommandExecutor) commandExecutor, responsePackets.size());
-                time = System.nanoTime() - before;
-                System.out.println("io     : " + new DecimalFormat("###,###,###,###,###").format(time));
-                return result;
+                return commandExecuteEngine.writeQueryData(context, backendConnection, (QueryCommandExecutor) commandExecutor, responsePackets.size());
             }
         } finally {
-            before = System.nanoTime();
             commandExecutor.close();
             // TODO optimize SQLStatementSchemaHolder  
             SQLStatementSchemaHolder.remove();
-            time = System.nanoTime() - before;
-            System.out.println("close  : " + new DecimalFormat("###,###,###,###,###").format(time));
         }
         return databaseProtocolFrontendEngine.getFrontendContext().isFlushForPerCommandPacket();
     }
