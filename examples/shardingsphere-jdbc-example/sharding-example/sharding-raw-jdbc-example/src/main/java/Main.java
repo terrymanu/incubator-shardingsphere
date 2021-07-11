@@ -25,7 +25,7 @@ import java.text.DecimalFormat;
 public final class Main {
     
     public static void main(final String[] args) throws ClassNotFoundException {
-        String driverClassName = "com.mysql.jdbc.Driver";
+        String driverClassName = "com.mysql.cj.jdbc.Driver";
 //        String url = "jdbc:mysql://localhost:3306/demo_read_ds_0?serverTimezone=UTC&useSSL=false&useUnicode=true&characterEncoding=UTF-8&useServerPrepStmts=true&cachePrepStmts=true";
 //        String username = "root";
 //        String password = "";
